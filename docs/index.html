@@ -123,7 +123,7 @@
     <p class="sub">From a random start, a model must equilibrate before its activity is representative.</p>
     <div class="card">
       <div class="simbar">
-        <span class="btnrow" id="bbtns" style="margin:0;"></span>
+        <span class="phase" style="background:#009E73;color:#fff;border-color:#009E73;">Expert model</span>
         <button class="btn" id="brestart">Restart</button>
         <button class="btn" id="bplay">Pause</button>
         <span class="phase" id="bphase">Burn-in</span>
@@ -233,8 +233,7 @@
   var bctx = bgrid.getContext('2d'), bimg = bctx.createImageData(M,L);
   var btc = document.getElementById('btrace'), btx = btc.getContext('2d');
   var bsweepEl=document.getElementById('bsweep'), btargetEl=document.getElementById('btarget'),
-      bfracEl=document.getElementById('bfrac'), bphaseEl=document.getElementById('bphase'),
-      bbtns=document.getElementById('bbtns');
+      bfracEl=document.getElementById('bfrac'), bphaseEl=document.getElementById('bphase');
 
   function aDrawGrid(){
     var d=bimg.data, s=A.sim.s, k, o, c;
@@ -247,37 +246,33 @@
     var W=btc.width, Hh=btc.height, tr=A.sim.trace, tgt=A.target;
     btx.clearRect(0,0,W,Hh);
     var xmax=Math.max(tgt*1.25, tr.length, 100), bx=tgt/xmax*W;
+    // y-axis: ignore the initial random-start transient, clamp to a readable range
+    var mx=0.02, i; for(i=10;i<tr.length;i++) if(tr[i]>mx) mx=tr[i];
+    var maxv=Math.min(0.18, Math.max(0.08, mx*1.15));
     btx.fillStyle='rgba(0,174,204,0.10)'; btx.fillRect(0,0,bx,Hh);
     btx.strokeStyle='#00aecc'; btx.lineWidth=1; btx.setLineDash([4,3]);
     btx.beginPath(); btx.moveTo(bx,0); btx.lineTo(bx,Hh); btx.stroke(); btx.setLineDash([]);
     btx.strokeStyle='#d0e4ea'; btx.beginPath(); btx.moveTo(0,Hh-1); btx.lineTo(W,Hh-1); btx.stroke();
-    var maxv=0.08, i; for(i=0;i<tr.length;i++) if(tr[i]>maxv) maxv=tr[i];
+    btx.save(); btx.beginPath(); btx.rect(0,0,W,Hh); btx.clip();
     btx.strokeStyle=A.sim.p.color; btx.lineWidth=1.4; btx.beginPath();
-    for(var n=0;n<tr.length;n++){ var x=n/xmax*W, y=Hh-(tr[n]/maxv)*(Hh-12)-3; if(n===0) btx.moveTo(x,y); else btx.lineTo(x,y); }
-    btx.stroke();
+    for(var n=0;n<tr.length;n++){ var x=n/xmax*W, y=Hh-(tr[n]/maxv)*(Hh-14)-3; if(n===0) btx.moveTo(x,y); else btx.lineTo(x,y); }
+    btx.stroke(); btx.restore();
     btx.fillStyle='#5e7782'; btx.font="10px 'JetBrains Mono',monospace";
-    btx.fillText((maxv*100).toFixed(0)+'%',3,11);
+    btx.fillText((maxv*100).toFixed(0)+'% active',3,11);
     btx.fillText('burn-in',4,Hh-4);
-    btx.fillText('fraction active vs sweep', bx+6, Hh-4);
   }
   function aSelect(p){
     A.sim=makeSim(p); resetSim(A.sim); A.target=aTarget(p); A.phase='burnin';
     btargetEl.textContent=A.target; bphaseEl.textContent='Burn-in';
-    Array.prototype.forEach.call(bbtns.children,function(b){ b.classList.toggle('active', b.textContent===p.name); });
     aDrawGrid(); aDrawTrace();
   }
-  presets.forEach(function(p){
-    var b=document.createElement('button'); b.className='btn'; b.textContent=p.name;
-    b.addEventListener('click', function(){ A.playing=true; document.getElementById('bplay').textContent='Pause'; aSelect(p); });
-    bbtns.appendChild(b);
-  });
   document.getElementById('bplay').addEventListener('click', function(){ A.playing=!A.playing; this.textContent=A.playing?'Pause':'Play'; });
   document.getElementById('brestart').addEventListener('click', function(){ aSelect(A.sim.p); });
 
   function aStep(ts){
     if(A.playing && A.sim){
       if(A.phase==='burnin'){
-        for(var b=0;b<8;b++){ sweep(A.sim); A.sim.trace.push(fracOf(A.sim));
+        for(var b=0;b<12;b++){ sweep(A.sim); A.sim.trace.push(fracOf(A.sim));
           if(A.sim.burned>=A.target){ A.phase='stable'; bphaseEl.textContent='Stabilised'; A.last=ts; break; } }
       } else if(ts-A.last>=1000/8){
         A.last=ts; sweep(A.sim); A.sim.trace.push(fracOf(A.sim));
@@ -344,7 +339,7 @@
   });
 
   // ---------------- Init ----------------
-  aSelect(presets[1]);   // default: Beginner (equilibrates quickly)
+  aSelect(presets[2]);   // Expert (the headline model)
   bDraw(0);
   requestAnimationFrame(aStep);
   requestAnimationFrame(bStep);
