@@ -68,15 +68,15 @@
   <header class="top">
     <div class="eyebrow">Model Explainer</div>
     <h1>The Ising model of population dynamics</h1>
-    <p>A lattice of stochastic “neurons” with short-range excitation and slow lateral inhibition. Sparse, drifting blobs of activity emerge — and you can drive it live below.</p>
+    <p>A lattice of stochastic units modelling the mouse superior colliculus (SC): short-range excitation and slow lateral inhibition make sparse, drifting blobs of activity emerge — and you can drive it live below.</p>
   </header>
 
   <nav class="pills" id="nav"></nav>
 
   <section id="overview">
     <div class="snum">01</div><h2>The idea</h2>
-    <p class="sub">Why model cortex-like sparse activity with spins?</p>
-    <p>Population recordings show <strong>sparse, transient patches</strong> of co-active neurons that appear, drift and fade. Rather than fit every neuron, we ask whether a simple statistical-physics model — a kinetic <strong>Ising model</strong> — reproduces the same <em>statistics</em>: how much of the population is active, how clustered it is, and how it responds to a stimulus.</p>
+    <p class="sub">Why model the superior colliculus's sparse, blob-like activity with spins?</p>
+    <p>Two-photon recordings in the mouse <strong>superior colliculus (SC)</strong> — a midbrain hub that integrates bottom-up visual input with top-down signals — show sparse, transient <strong>blob-like</strong> patches of co-active neurons that appear, drift and fade, and that shape visual attention. Rather than fit every neuron, we ask whether a simple statistical-physics model — a kinetic <strong>Ising model</strong> — reproduces the same <em>statistics</em>: how much of the population is active, how clustered it is, and how it responds to a stimulus.</p>
     <p>Each lattice site is a unit that is either <strong>active (+1)</strong> or <strong>inactive (−1)</strong>. Two ingredients shape the dynamics: nearby units <strong>excite</strong> each other, while a broader surround <strong>inhibits</strong> with a delay. That competition is what produces moving blobs instead of a frozen, fully-on or fully-off sheet.</p>
     <div class="callout">This page runs a faithful in-browser port of the model's update rule for teaching. The analysis pipeline itself lives in <span class="tag">ising-model/</span> of the repository (Python, Numba-accelerated).</div>
   </section>
@@ -138,7 +138,7 @@
     <p class="sub">Fitting the five parameters, and perturbing the fit.</p>
     <p>For each condition (Naive → Beginner → Expert, plus No-Spout) the five parameters <strong>β, c, decay, rad, bias</strong> are swept over a large grid and scored against the recorded dynamics (Moran's I + activity distribution, via a Wasserstein distance). The best-matching simulations define each condition's model — that is <strong>Figure 5</strong>.</p>
     <p><strong>Figure 6</strong> then <em>perturbs</em> the fitted model with a transient bias pulse (a “stimulus”) and measures how strongly activity is amplified — reproducing the state-dependent gain seen across learning. The <span class="tag">demos/</span> folder reproduces both the Expert base model (<span class="tag">demo_ising.py</span>) and the exact Figure 6c perturbed trace (<span class="tag">demo_figure6c_expert.m</span>).</p>
-    <div class="foot">Part of the accompanying code for the paper. Full simulation code: the <span class="tag">ising-model/</span> folder of this repository. The experimental analysis code is released separately.</div>
+    <div class="foot">Part of the accompanying code for the paper. Full simulation code: the <span class="tag">ising-model/</span> folder of this repository.</div>
   </section>
 </div>
 
