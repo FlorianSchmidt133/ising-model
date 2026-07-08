@@ -1,0 +1,12 @@
+# Python dependencies for the Ising-model and Python analysis code.
+# Install with:  pip install -r requirements.txt
+numpy
+scipy
+matplotlib
+h5py
+numba
+scikit-learn
+tqdm
+seaborn
+joblib
+Pillow

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>How the Ising model works — interactive explainer</title>
+<meta name="description" content="Interactive walkthrough of the kinetic Ising model with adaptive lateral inhibition used to model neural population dynamics. Drive the simulation live in your browser." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:wght@400;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --blue:#00aecc; --dark:#0f5568; --blue2:#1b88a7; --light:#bee3ef;
+    --purple:#c73188; --red:#e95e30; --text:#1a2a32; --muted:#5e7782;
+    --bg:#f6fafb; --card:#edf6f8; --border:#d0e4ea;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;background:#fff;color:var(--text);-webkit-font-smoothing:antialiased;
+       font-family:'Inter',-apple-system,sans-serif;line-height:1.6;}
+  .wrap{max-width:720px;margin:0 auto;padding:24px 20px 80px;}
+  header.top{text-align:center;margin-bottom:28px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--blue);
+           letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;}
+  h1{font-family:'Source Serif 4',Georgia,serif;font-size:36px;font-weight:800;color:var(--dark);
+     line-height:1.15;margin:0 0 10px;}
+  header.top p{font-size:15px;color:var(--muted);max-width:540px;margin:0 auto;}
+  nav.pills{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;position:sticky;top:0;z-index:10;
+            padding:12px 0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);margin-bottom:36px;}
+  nav.pills button{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);
+            background:var(--card);border:1px solid var(--border);border-radius:999px;padding:6px 12px;
+            cursor:pointer;transition:all .15s;}
+  nav.pills button:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+  section{margin-bottom:56px;scroll-margin-top:64px;}
+  .snum{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--blue);font-weight:600;}
+  h2{font-family:'Source Serif 4',Georgia,serif;font-size:26px;font-weight:700;color:var(--dark);
+     line-height:1.2;margin:2px 0 4px;}
+  .sub{font-size:15px;color:var(--muted);margin:0 0 18px;}
+  p{font-size:14.5px;margin:0 0 14px;}
+  strong{color:var(--dark);}
+  .callout{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--blue);
+           border-radius:8px;padding:12px 16px;font-size:13.5px;color:var(--dark);margin:16px 0;}
+  .eq{font-family:'JetBrains Mono',monospace;font-size:14px;background:var(--bg);border:1px solid var(--border);
+      border-radius:8px;padding:12px 14px;margin:14px 0;overflow-x:auto;color:var(--dark);}
+  .card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:18px;margin:16px 0;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ctrl{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);
+        font-family:'JetBrains Mono',monospace;}
+  .ctrl .row{display:flex;justify-content:space-between;align-items:baseline;}
+  .ctrl .val{color:var(--dark);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;}
+  .btn{font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 12px;border-radius:6px;
+       border:1px solid var(--border);background:#fff;color:var(--dark);cursor:pointer;transition:all .15s;}
+  .btn:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .btn.active{background:var(--dark);color:#fff;border-color:var(--dark);}
+  .btnrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;}
+  canvas{display:block;image-rendering:pixelated;border-radius:8px;background:#0e2a31;width:100%;height:auto;}
+  .readout{display:flex;gap:18px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);
+           margin-top:8px;flex-wrap:wrap;}
+  .readout b{color:var(--dark);}
+  .foot{font-size:12.5px;color:var(--muted);border-top:1px solid var(--border);padding-top:16px;margin-top:8px;}
+  a{color:var(--blue2);}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--purple);}
+  @media(max-width:520px){.grid2{grid-template-columns:1fr;}h1{font-size:28px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Model Explainer</div>
+    <h1>The Ising model of population dynamics</h1>
+    <p>A lattice of stochastic “neurons” with short-range excitation and slow lateral inhibition. Sparse, drifting blobs of activity emerge — and you can drive it live below.</p>
+  </header>
+
+  <nav class="pills" id="nav"></nav>
+
+  <section id="overview">
+    <div class="snum">01</div><h2>The idea</h2>
+    <p class="sub">Why model cortex-like sparse activity with spins?</p>
+    <p>Population recordings show <strong>sparse, transient patches</strong> of co-active neurons that appear, drift and fade. Rather than fit every neuron, we ask whether a simple statistical-physics model — a kinetic <strong>Ising model</strong> — reproduces the same <em>statistics</em>: how much of the population is active, how clustered it is, and how it responds to a stimulus.</p>
+    <p>Each lattice site is a unit that is either <strong>active (+1)</strong> or <strong>inactive (−1)</strong>. Two ingredients shape the dynamics: nearby units <strong>excite</strong> each other, while a broader surround <strong>inhibits</strong> with a delay. That competition is what produces moving blobs instead of a frozen, fully-on or fully-off sheet.</p>
+    <div class="callout">This page runs a faithful in-browser port of the model's update rule for teaching. The analysis pipeline itself lives in <span class="tag">ising-model/</span> of the repository (Python, Numba-accelerated).</div>
+  </section>
+
+  <section id="spins">
+    <div class="snum">02</div><h2>Spins on a lattice</h2>
+    <p class="sub">A grid of ±1 units with periodic (wrap-around) edges.</p>
+    <p>The state is a 2-D grid <span class="eq" style="display:inline;padding:2px 6px;">s(i,j) ∈ {−1, +1}</span>. In the paper the grid is <strong>39 × 78</strong> — three times the imaged field — with periodic boundaries so there are no edges. At any moment the fraction of <strong>+1</strong> sites is the model's “fraction active”, the quantity we compare to the data.</p>
+  </section>
+
+  <section id="rule">
+    <div class="snum">03</div><h2>The update rule</h2>
+    <p class="sub">Heat-bath (Glauber) dynamics with an excitatory neighbourhood.</p>
+    <p>We repeatedly pick a random site and re-draw its state. Its <em>local field</em> combines its four nearest neighbours, a slow inhibition field <strong>H</strong> (next section), and a constant <strong>bias</strong>:</p>
+    <div class="eq">local = Σ(nearest-neighbour spins) + H(i,j) + bias</div>
+    <p>The site becomes active with a probability set by the local field and the <strong>inverse temperature β</strong> (how deterministic vs. noisy the units are):</p>
+    <div class="eq">P( s = +1 ) = 1 / ( 1 + e<sup>−2 β · local</sup> )</div>
+    <p>High β ⇒ nearly deterministic (strong fields win); low β ⇒ noisy, near-random. A negative <strong>bias</strong> keeps the baseline mostly silent, matching the low spontaneous activity in the data.</p>
+  </section>
+
+  <section id="inhibition">
+    <div class="snum">04</div><h2>Adaptive lateral inhibition</h2>
+    <p class="sub">The ingredient that turns a ferromagnet into drifting blobs.</p>
+    <p>Each site carries a slow field <strong>H</strong> that integrates the activity of its <strong>surround</strong> — a diamond-shaped kernel of radius <strong>rad</strong> that <em>excludes</em> the centre and its four nearest neighbours (so close units only excite, distant ones only inhibit):</p>
+    <div class="eq">inhib = ⟨surround spins⟩   →   H ← H − (c · inhib · dt) − (decay · H · dt),   dt = 1/(L·M)</div>
+    <p>When a region lights up, its surround accumulates negative H and is suppressed shortly after — so activity can't stay put. <strong>c</strong> sets the inhibition strength, <strong>decay</strong> how fast H relaxes, and <strong>rad</strong> the spatial reach. Together they set the size, lifetime and drift of the blobs.</p>
+  </section>
+
+  <section id="sim">
+    <div class="snum">05</div><h2>Run it yourself</h2>
+    <p class="sub">Drive the model live. Try the per-condition presets, or move the sliders.</p>
+    <div class="card">
+      <div class="btnrow" id="presets"></div>
+      <canvas id="cv" width="234" height="117"></canvas>
+      <div class="readout">
+        <span>fraction active: <b id="frac">–</b></span>
+        <span>sweeps: <b id="sweeps">0</b></span>
+        <span id="presetName" class="tag"></span>
+      </div>
+      <canvas id="trace" width="468" height="70" style="margin-top:10px;background:var(--bg);"></canvas>
+      <div class="grid2" style="margin-top:14px;">
+        <div class="ctrl"><div class="row"><span>β  inverse temperature</span><span class="val" id="vbeta"></span></div><input type="range" id="beta" min="0.2" max="0.9" step="0.01"></div>
+        <div class="ctrl"><div class="row"><span>c  inhibition strength</span><span class="val" id="vc"></span></div><input type="range" id="c" min="1" max="9" step="1"></div>
+        <div class="ctrl"><div class="row"><span>decay  H relaxation</span><span class="val" id="vdecay"></span></div><input type="range" id="decay" min="2" max="11" step="1"></div>
+        <div class="ctrl"><div class="row"><span>rad  inhibition reach</span><span class="val" id="vrad"></span></div><input type="range" id="rad" min="2" max="13" step="1"></div>
+        <div class="ctrl"><div class="row"><span>bias  baseline drive</span><span class="val" id="vbias"></span></div><input type="range" id="bias" min="-1.6" max="-0.4" step="0.05"></div>
+        <div class="ctrl"><div class="row"><span>speed  sweeps / frame</span><span class="val" id="vspeed"></span></div><input type="range" id="speed" min="1" max="6" step="1"></div>
+      </div>
+      <div class="btnrow" style="margin-top:12px;">
+        <button class="btn" id="play">Pause</button>
+        <button class="btn" id="reset">Reset lattice</button>
+      </div>
+    </div>
+    <div class="callout">Presets are the top best-match parameter sets per training condition (from <span class="tag">EDFigure10_top10_params.json</span>). The grid here is 39×78 with rook (4-neighbour) coupling, exactly as in the paper; it starts from random and settles after a few hundred sweeps.</div>
+  </section>
+
+  <section id="paper">
+    <div class="snum">06</div><h2>From model to data</h2>
+    <p class="sub">Fitting the five parameters, and perturbing the fit.</p>
+    <p>For each condition (Naive → Beginner → Expert, plus No-Spout) the five parameters <strong>β, c, decay, rad, bias</strong> are swept over a large grid and scored against the recorded dynamics (Moran's I + activity distribution, via a Wasserstein distance). The best-matching simulations define each condition's model — that is <strong>Figure 5</strong>.</p>
+    <p><strong>Figure 6</strong> then <em>perturbs</em> the fitted model with a transient bias pulse (a “stimulus”) and measures how strongly activity is amplified — reproducing the state-dependent gain seen across learning. The <span class="tag">demos/</span> folder reproduces both the Expert base model (<span class="tag">demo_ising.py</span>) and the exact Figure 6c perturbed trace (<span class="tag">demo_figure6c_expert.m</span>).</p>
+    <div class="foot">Part of the accompanying code for the paper. Full simulation code: the <span class="tag">ising-model/</span> folder of this repository. The experimental analysis code is released separately.</div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---------------- Ising model (faithful heat-bath port) ----------------
+  var L = 39, M = 78, N = L*M;
+  var s = new Int8Array(N), H = new Float64Array(N);
+  var beta=0.56, c=4, decay=4, rad=13, bias=-0.8, speed=2;
+  var offsRC = [], Ksum = 1, sweeps = 0;   // surround kernel: [di,dj] offsets
+  var traceBuf = [], TRACE_MAX = 234;
+
+  function idx(i,j){ i=(i%L+L)%L; j=(j%M+M)%M; return i*M+j; }
+
+  // Diamond kernel of radius r, excluding the centre and the 4 nearest
+  // neighbours (near units excite, the surround inhibits) — matches build_diamond_kernel.
+  function buildKernel(r){
+    offsRC = [];
+    for(var di=-r; di<=r; di++) for(var dj=-r; dj<=r; dj++){
+      if(Math.abs(di)+Math.abs(dj) > r) continue;      // diamond
+      if(di===0 && dj===0) continue;                   // exclude centre
+      if(Math.abs(di)+Math.abs(dj) === 1) continue;    // exclude 4 nearest neighbours
+      offsRC.push([di,dj]);
+    }
+    Ksum = offsRC.length || 1;
+  }
+
+  function resetLattice(){
+    for(var k=0;k<N;k++){ s[k] = (Math.random()<0.5)?1:-1; H[k]=0; }
+    sweeps = 0; traceBuf = [];
+  }
+
+  function sweep(){
+    var dt = 1.0/N;
+    for(var n=0;n<N;n++){
+      var i = (Math.random()*L)|0, j = (Math.random()*M)|0;
+      var h = s[idx(i+1,j)] + s[idx(i-1,j)] + s[idx(i,j+1)] + s[idx(i,j-1)];
+      var p = idx(i,j);
+      var local = h + H[p] + bias;
+      var pplus = 1.0/(1.0 + Math.exp(-2.0*beta*local));
+      s[p] = (Math.random() < pplus) ? 1 : -1;
+      // adaptive inhibition: surround sum over the diamond kernel (periodic wrap)
+      var inhib = 0;
+      for(var oi=0; oi<offsRC.length; oi++){
+        inhib += s[idx(i+offsRC[oi][0], j+offsRC[oi][1])];
+      }
+      inhib /= Ksum;
+      H[p] += -(c*inhib*dt) - (decay*H[p]*dt);
+    }
+    sweeps++;
+  }
+
+  function fractionActive(){
+    var cnt=0; for(var k=0;k<N;k++) if(s[k]===1) cnt++;
+    return cnt/N;
+  }
+
+  // ---------------- Rendering ----------------
+  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  cv.width = M; cv.height = L;                    // 1px/cell, CSS scales up
+  var img = ctx.createImageData(M, L);
+  // active = warm amber, inactive = dark teal
+  var AON=[255,209,102], AOFF=[14,42,49];
+  function draw(){
+    var d = img.data;
+    for(var k=0;k<N;k++){
+      var col = (s[k]===1)?AON:AOFF, o=k*4;
+      d[o]=col[0]; d[o+1]=col[1]; d[o+2]=col[2]; d[o+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+  }
+  var tc = document.getElementById('trace'), tctx = tc.getContext('2d');
+  function drawTrace(){
+    var W=tc.width, Hh=tc.height;
+    tctx.clearRect(0,0,W,Hh);
+    // baseline grid
+    tctx.strokeStyle='#d0e4ea'; tctx.lineWidth=1;
+    tctx.beginPath(); tctx.moveTo(0,Hh-1); tctx.lineTo(W,Hh-1); tctx.stroke();
+    if(traceBuf.length<2) return;
+    var maxv=0.12; // 12% ceiling for scaling
+    for(var i=0;i<traceBuf.length;i++) if(traceBuf[i]>maxv) maxv=traceBuf[i];
+    tctx.strokeStyle='#e95e30'; tctx.lineWidth=1.5; tctx.beginPath();
+    for(var n=0;n<traceBuf.length;n++){
+      var x = n/(TRACE_MAX-1)*W;
+      var y = Hh - (traceBuf[n]/maxv)*(Hh-6) - 3;
+      if(n===0) tctx.moveTo(x,y); else tctx.lineTo(x,y);
+    }
+    tctx.stroke();
+    tctx.fillStyle='#5e7782'; tctx.font="10px 'JetBrains Mono',monospace";
+    tctx.fillText((maxv*100).toFixed(0)+'%', 3, 11);
+    tctx.fillText('fraction active over time', 3, Hh-4);
+  }
+
+  // ---------------- Presets (top-1 best-match per condition) ----------------
+  var presets = {
+    Naive:    {beta:0.65, c:5, decay:4,  rad:9,  bias:-1.0},
+    Beginner: {beta:0.63, c:9, decay:7,  rad:4,  bias:-1.0},
+    Expert:   {beta:0.56, c:4, decay:4,  rad:13, bias:-0.8},
+    NoSpout:  {beta:0.60, c:9, decay:11, rad:4,  bias:-0.6}
+  };
+  var curPreset = 'Expert';
+
+  // ---------------- Controls ----------------
+  var ids = ['beta','c','decay','rad','bias','speed'];
+  function syncInputs(){
+    document.getElementById('beta').value=beta;  document.getElementById('vbeta').textContent=beta.toFixed(2);
+    document.getElementById('c').value=c;         document.getElementById('vc').textContent=c;
+    document.getElementById('decay').value=decay; document.getElementById('vdecay').textContent=decay;
+    document.getElementById('rad').value=rad;      document.getElementById('vrad').textContent=rad;
+    document.getElementById('bias').value=bias;    document.getElementById('vbias').textContent=bias.toFixed(2);
+    document.getElementById('speed').value=speed;  document.getElementById('vspeed').textContent=speed;
+  }
+  function onInput(){
+    beta=+document.getElementById('beta').value;
+    c=+document.getElementById('c').value;
+    decay=+document.getElementById('decay').value;
+    var newRad=+document.getElementById('rad').value;
+    bias=+document.getElementById('bias').value;
+    speed=+document.getElementById('speed').value;
+    if(newRad!==rad){ rad=newRad; buildKernel(rad); }
+    curPreset=''; document.getElementById('presetName').textContent='';
+    setActivePresetBtn();
+    syncInputs();
+  }
+  ids.forEach(function(id){ document.getElementById(id).addEventListener('input', onInput); });
+
+  function applyPreset(name){
+    var p=presets[name]; if(!p) return;
+    beta=p.beta; c=p.c; decay=p.decay; rad=p.rad; bias=p.bias;
+    buildKernel(rad); syncInputs(); resetLattice();
+    curPreset=name; document.getElementById('presetName').textContent=name+' preset';
+    setActivePresetBtn();
+  }
+  var presetBox = document.getElementById('presets');
+  Object.keys(presets).forEach(function(name){
+    var b=document.createElement('button'); b.className='btn'; b.textContent=name;
+    b.addEventListener('click', function(){ applyPreset(name); });
+    presetBox.appendChild(b);
+  });
+  function setActivePresetBtn(){
+    Array.prototype.forEach.call(presetBox.children, function(b){
+      b.classList.toggle('active', b.textContent===curPreset);
+    });
+  }
+
+  var playing=true;
+  document.getElementById('play').addEventListener('click', function(){
+    playing=!playing; this.textContent=playing?'Pause':'Play';
+  });
+  document.getElementById('reset').addEventListener('click', resetLattice);
+
+  // ---------------- Nav ----------------
+  var nav=[['overview','Idea'],['spins','Lattice'],['rule','Update rule'],
+           ['inhibition','Inhibition'],['sim','Run it'],['paper','Model → data']];
+  var navEl=document.getElementById('nav');
+  nav.forEach(function(n){
+    var b=document.createElement('button'); b.textContent=n[1];
+    b.addEventListener('click', function(){ var el=document.getElementById(n[0]); if(el) el.scrollIntoView({behavior:'smooth'}); });
+    navEl.appendChild(b);
+  });
+
+  // ---------------- Loop ----------------
+  var fracEl=document.getElementById('frac'), swEl=document.getElementById('sweeps');
+  function loop(){
+    if(playing){
+      for(var k=0;k<speed;k++) sweep();
+      var f=fractionActive();
+      traceBuf.push(f); if(traceBuf.length>TRACE_MAX) traceBuf.shift();
+      draw(); drawTrace();
+      fracEl.textContent=(f*100).toFixed(1)+'%';
+      swEl.textContent=sweeps;
+    }
+    requestAnimationFrame(loop);
+  }
+
+  buildKernel(rad); syncInputs(); resetLattice(); setActivePresetBtn();
+  document.getElementById('presetName').textContent=curPreset+' preset';
+  loop();
+})();
+</script>
+</body>
+</html>

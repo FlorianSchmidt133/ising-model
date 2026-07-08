@@ -1,0 +1,30 @@
+# Outputs
+results/
+*.svg
+*.eps
+
+# Data (large binaries) - keep real datasets out of the repo (see README).
+# Exceptions: the bundled example data and the small helper assets in utils/
+# (colormaps, stimulus lookup table) that the code loads by name.
+*.mat
+!example_data/**/*.mat
+!utils/**/*.mat
+
+# MATLAB
+*.asv
+*.mex*
+slprj/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+.DS_store
+Thumbs.db
+*~
