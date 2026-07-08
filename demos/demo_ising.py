@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-demo_ising.py — minimal, self-contained demo of the Ising model.
+demo_ising.py: minimal, self-contained demo of the Ising model.
 
 Runs a single small Ising simulation using the *actual* model code
 (`ising-model/generate_all_ising_simulations.py::monte_carlo`), then plots a few

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>How the Ising model works — interactive explainer</title>
+<title>How the Ising model works: interactive explainer</title>
 <meta name="description" content="Interactive walkthrough of the kinetic Ising model with adaptive lateral inhibition used to model neural population dynamics. Drive the simulation live in your browser." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -68,23 +68,23 @@
   <header class="top">
     <div class="eyebrow">Model Explainer</div>
     <h1>The Ising model of population dynamics</h1>
-    <p>A lattice of stochastic units modelling the mouse superior colliculus (SC): short-range excitation and slow lateral inhibition make sparse, drifting blobs of activity emerge — and you can drive it live below.</p>
+    <p>A lattice of stochastic units modelling the mouse superficial superior colliculus (sSC): short-range excitation and slow lateral inhibition make sparse, transient blobs of activity emerge. Drive it live below.</p>
   </header>
 
   <nav class="pills" id="nav"></nav>
 
   <section id="overview">
     <div class="snum">01</div><h2>The idea</h2>
-    <p class="sub">Why model the superior colliculus's sparse, blob-like activity with spins?</p>
-    <p>Two-photon recordings in the mouse <strong>superior colliculus (SC)</strong> — a midbrain hub that integrates bottom-up visual input with top-down signals — show sparse, transient <strong>blob-like</strong> patches of co-active neurons that appear, drift and fade, and that shape visual attention. Rather than fit every neuron, we ask whether a simple statistical-physics model — a kinetic <strong>Ising model</strong> — reproduces the same <em>statistics</em>: how much of the population is active, how clustered it is, and how it responds to a stimulus.</p>
-    <p>Each lattice site is a unit that is either <strong>active (+1)</strong> or <strong>inactive (−1)</strong>. Two ingredients shape the dynamics: nearby units <strong>excite</strong> each other, while a broader surround <strong>inhibits</strong> with a delay. That competition is what produces moving blobs instead of a frozen, fully-on or fully-off sheet.</p>
+    <p class="sub">Why model the superficial superior colliculus's sparse, blob-like activity with spins?</p>
+    <p>Two-photon recordings in the mouse <strong>superficial superior colliculus (sSC)</strong>, a midbrain hub that integrates bottom-up visual input with top-down signals, show sparse, transient <strong>blob-like</strong> patches of co-active neurons that appear, persist and fade, and that shape visual attention. Rather than fit every neuron, we ask whether a simple statistical-physics model, a kinetic <strong>Ising model</strong>, reproduces the same <em>statistics</em>: how much of the population is active, how clustered it is, and how it responds to a stimulus.</p>
+    <p>Each lattice site is a unit that is either <strong>active (+1)</strong> or <strong>inactive (−1)</strong>. Two ingredients shape the dynamics: nearby units <strong>excite</strong> each other, while a broader surround <strong>inhibits</strong> with a delay. That competition is what produces transient, localized blobs instead of a frozen, fully-on or fully-off sheet.</p>
     <div class="callout">This page runs a faithful in-browser port of the model's update rule for teaching. The analysis pipeline itself lives in <span class="tag">ising-model/</span> of the repository (Python, Numba-accelerated).</div>
   </section>
 
   <section id="spins">
     <div class="snum">02</div><h2>Spins on a lattice</h2>
     <p class="sub">A grid of ±1 units with periodic (wrap-around) edges.</p>
-    <p>The state is a 2-D grid <span class="eq" style="display:inline;padding:2px 6px;">s(i,j) ∈ {−1, +1}</span>. In the paper the grid is <strong>39 × 78</strong> — three times the imaged field — with periodic boundaries so there are no edges. At any moment the fraction of <strong>+1</strong> sites is the model's “fraction active”, the quantity we compare to the data.</p>
+    <p>The state is a 2-D grid <span class="eq" style="display:inline;padding:2px 6px;">s(i,j) ∈ {−1, +1}</span>. Each unit corresponds to an imaged tissue voxel; the model grid is <strong>39 × 78</strong>, three times the 13 × 26 imaged field, with periodic boundaries so there are no edges. At any moment the fraction of <strong>+1</strong> sites is the model's “fraction active”, the quantity we compare to the data.</p>
   </section>
 
   <section id="rule">
@@ -99,10 +99,10 @@
 
   <section id="inhibition">
     <div class="snum">04</div><h2>Adaptive lateral inhibition</h2>
-    <p class="sub">The ingredient that turns a ferromagnet into drifting blobs.</p>
-    <p>Each site carries a slow field <strong>H</strong> that integrates the activity of its <strong>surround</strong> — a diamond-shaped kernel of radius <strong>rad</strong> that <em>excludes</em> the centre and its four nearest neighbours (so close units only excite, distant ones only inhibit):</p>
+    <p class="sub">The ingredient that turns a ferromagnet into transient, localized blobs.</p>
+    <p>Each site carries a slow field <strong>H</strong> that integrates the activity of its <strong>surround</strong>, a diamond-shaped kernel of radius <strong>rad</strong> that <em>excludes</em> the centre and its four nearest neighbours (so close units only excite, distant ones only inhibit):</p>
     <div class="eq">inhib = ⟨surround spins⟩   →   H ← H − (c · inhib · dt) − (decay · H · dt),   dt = 1/(L·M)</div>
-    <p>When a region lights up, its surround accumulates negative H and is suppressed shortly after — so activity can't stay put. <strong>c</strong> sets the inhibition strength, <strong>decay</strong> how fast H relaxes, and <strong>rad</strong> the spatial reach. Together they set the size, lifetime and drift of the blobs.</p>
+    <p>When a region lights up, its surround accumulates negative H and is suppressed shortly after, so activity cannot stay put (a non-reciprocal feedback). <strong>c</strong> sets the inhibition strength, <strong>decay</strong> how fast H relaxes, and <strong>rad</strong> the spatial reach. Together they set the size and lifetime of the blobs.</p>
   </section>
 
   <section id="sim">
@@ -112,7 +112,7 @@
       <div class="btnrow" id="presets"></div>
       <canvas id="cv" width="234" height="117"></canvas>
       <div class="readout">
-        <span>fraction active: <b id="frac">–</b></span>
+        <span>fraction active: <b id="frac">-</b></span>
         <span>sweeps: <b id="sweeps">0</b></span>
         <span id="presetName" class="tag"></span>
       </div>
@@ -122,7 +122,7 @@
         <div class="ctrl"><div class="row"><span>c  inhibition strength</span><span class="val" id="vc"></span></div><input type="range" id="c" min="1" max="9" step="1"></div>
         <div class="ctrl"><div class="row"><span>decay  H relaxation</span><span class="val" id="vdecay"></span></div><input type="range" id="decay" min="2" max="11" step="1"></div>
         <div class="ctrl"><div class="row"><span>rad  inhibition reach</span><span class="val" id="vrad"></span></div><input type="range" id="rad" min="2" max="13" step="1"></div>
-        <div class="ctrl"><div class="row"><span>bias  baseline drive</span><span class="val" id="vbias"></span></div><input type="range" id="bias" min="-1.6" max="-0.4" step="0.05"></div>
+        <div class="ctrl"><div class="row"><span>bias  spiking threshold</span><span class="val" id="vbias"></span></div><input type="range" id="bias" min="-1.6" max="-0.4" step="0.05"></div>
         <div class="ctrl"><div class="row"><span>speed  sweeps / frame</span><span class="val" id="vspeed"></span></div><input type="range" id="speed" min="1" max="6" step="1"></div>
       </div>
       <div class="btnrow" style="margin-top:12px;">
@@ -136,8 +136,8 @@
   <section id="paper">
     <div class="snum">06</div><h2>From model to data</h2>
     <p class="sub">Fitting the five parameters, and perturbing the fit.</p>
-    <p>For each condition (Naive → Beginner → Expert, plus No-Spout) the five parameters <strong>β, c, decay, rad, bias</strong> are swept over a large grid and scored against the recorded dynamics (Moran's I + activity distribution, via a Wasserstein distance). The best-matching simulations define each condition's model — that is <strong>Figure 5</strong>.</p>
-    <p><strong>Figure 6</strong> then <em>perturbs</em> the fitted model with a transient bias pulse (a “stimulus”) and measures how strongly activity is amplified — reproducing the state-dependent gain seen across learning. The <span class="tag">demos/</span> folder reproduces both the Expert base model (<span class="tag">demo_ising.py</span>) and the exact Figure 6c perturbed trace (<span class="tag">demo_figure6c_expert.m</span>).</p>
+    <p>For each condition (Naive, Beginner, Expert, plus No-Spout) the five parameters <strong>β, c, decay, rad, bias</strong> are screened over a large grid (~25,000 sets) and scored against the recorded dynamics with a Wasserstein distance on the distribution of instantaneous activity and the occurrence of blob-like features. The best-matching simulations define each condition's model; that is <strong>Figure 5</strong>.</p>
+    <p><strong>Figure 6</strong> then <em>perturbs</em> the fitted model with two brief bias pulses (at stimulus onset and offset) applied to a localized patch, and measures how strongly activity is amplified, reproducing the state-dependent gain seen across learning. The <span class="tag">demos/</span> folder reproduces both the Expert base model (<span class="tag">demo_ising.py</span>) and the exact Figure 6c perturbed trace (<span class="tag">demo_figure6c_expert.m</span>).</p>
     <div class="foot">Part of the accompanying code for the paper. Full simulation code: the <span class="tag">ising-model/</span> folder of this repository.</div>
   </section>
 </div>
@@ -155,7 +155,7 @@
   function idx(i,j){ i=(i%L+L)%L; j=(j%M+M)%M; return i*M+j; }
 
   // Diamond kernel of radius r, excluding the centre and the 4 nearest
-  // neighbours (near units excite, the surround inhibits) — matches build_diamond_kernel.
+  // neighbours (near units excite, the surround inhibits); matches build_diamond_kernel.
   function buildKernel(r){
     offsRC = [];
     for(var di=-r; di<=r; di++) for(var dj=-r; dj<=r; dj++){

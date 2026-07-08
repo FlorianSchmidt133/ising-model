@@ -1,6 +1,6 @@
 # Demos
 
-## `demo_ising.py` — the Ising model (no data needed)
+## `demo_ising.py`: the Ising model (no data needed)
 
 Runs the **Expert-condition best-match model** using the actual model code
 (`ising-model/generate_all_ising_simulations.py::monte_carlo`) on the paper's
@@ -18,7 +18,7 @@ Output: `results/demo_ising.png`. Takes ~1 minute (39×78 grid, radius-13 kernel
 long burn-in; first run also compiles the Numba kernels). Edit the parameter
 block at the top of `demo_ising.py` for a smaller/faster run.
 
-## `demo_figure6c_expert.m` — reproduce Figure 6c's Expert model trace exactly
+## `demo_figure6c_expert.m`: reproduce Figure 6c's Expert model trace exactly
 
 Reads the exact per-replicate model activity that Figure 6c plots for the Expert
 condition (sim 3, size 3, dur 51, mode `double_pulse_bias10`, matched local
