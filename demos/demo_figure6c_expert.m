@@ -68,18 +68,17 @@ mu  = mean(disp_reps, 1);
 sem = std(disp_reps, 0, 1) ./ sqrt(nReps);
 
 fprintf('Loaded Figure 6c Expert model: %d replicates x %d frames\n', nReps, nFrames);
-fprintf('  leaf: %s\n  secPerFrame=%.4f s, stim [0, %.2f] s\n', leafPath, secPerFrame, stimEndSec);
+fprintf('  secPerFrame=%.4f s, stim window [0, %.2f] s\n', secPerFrame, stimEndSec);
 
 % ---- Plot: raster + mean +/- SEM (Figure 6c model panels) ----
 figure('Name', 'Figure6c_Expert_model');
 tl = tiledlayout(2, 1);
-title(tl, sprintf('Figure 6c - Expert model (sim %d, bias %.2f, size %d, dur %d)', ...
-      simIdx, biasVal, stimSize, chosenDur));
+title(tl, 'Figure 6c: Expert model');
 
 nexttile;
 imagesc(t, 1:nReps, disp_reps);
 hold on; xline(0, 'w-'); xline(stimEndSec, 'w-');
-colorbar; colormap(gca, parula);
+S = load('EntropyColourMap.mat'); colorbar; colormap(gca, S.EntropyColourmap);
 xlabel('time from stim onset (s)'); ylabel('replicate'); title('Per-replicate fraction active (%)');
 
 nexttile;

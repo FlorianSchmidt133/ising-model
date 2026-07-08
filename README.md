@@ -52,6 +52,13 @@ requirements.txt      Python dependencies
 Signal Processing toolboxes, for the comparison/figure scripts under
 `ising-model/comparisons/`.
 
+**External MATLAB toolboxes** (third-party, not bundled; install separately and
+add to the path). Needed only by specific figure scripts:
+- [`gramm`](https://github.com/piermorel/gramm): plotting, used by `ising-model/Figure6.m`.
+- [UMAP (`run_umap`)](https://www.mathworks.com/matlabcentral/fileexchange/71902): the parameter-screen projection, used by `ising-model/comparisons/Figure5_IsingComparison.m`.
+
+The bundled `demos/` do not need these.
+
 ## Demos
 
 ```bash
