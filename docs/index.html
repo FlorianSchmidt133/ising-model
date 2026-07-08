@@ -60,6 +60,19 @@
   .foot{font-size:12.5px;color:var(--muted);border-top:1px solid var(--border);padding-top:16px;margin-top:8px;}
   a{color:var(--blue2);}
   .tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--purple);}
+  .simbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
+  .phase{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dark);background:var(--card);border:1px solid var(--border);border-radius:999px;padding:4px 10px;}
+  .prog{flex:1 1 90px;min-width:70px;height:6px;background:var(--card);border-radius:3px;overflow:hidden;}
+  .progfill{height:100%;width:0;background:var(--blue);transition:width .1s linear;}
+  .conds{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .cond{display:flex;flex-direction:column;gap:3px;text-align:center;}
+  .cond .nm{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;}
+  .cond .pr{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--muted);line-height:1.3;}
+  .cond canvas{width:100%;height:auto;border-radius:5px;background:#0e2a31;}
+  .cond .fa{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dark);}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:8px;}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+  @media(max-width:560px){.conds{grid-template-columns:repeat(2,1fr);}}
   @media(max-width:520px){.grid2{grid-template-columns:1fr;}h1{font-size:28px;}}
 </style>
 </head>
@@ -107,30 +120,20 @@
 
   <section id="sim">
     <div class="snum">05</div><h2>Run it yourself</h2>
-    <p class="sub">Drive the model live. Try the per-condition presets, or move the sliders.</p>
+    <p class="sub">The four training conditions running side by side, each with its best-match parameters.</p>
     <div class="card">
-      <div class="btnrow" id="presets"></div>
-      <canvas id="cv" width="234" height="117"></canvas>
-      <div class="readout">
-        <span>fraction active: <b id="frac">-</b></span>
-        <span>sweeps: <b id="sweeps">0</b></span>
-        <span id="presetName" class="tag"></span>
-      </div>
-      <canvas id="trace" width="468" height="70" style="margin-top:10px;background:var(--bg);"></canvas>
-      <div class="grid2" style="margin-top:14px;">
-        <div class="ctrl"><div class="row"><span>β  inverse temperature</span><span class="val" id="vbeta"></span></div><input type="range" id="beta" min="0.2" max="0.9" step="0.01"></div>
-        <div class="ctrl"><div class="row"><span>c  inhibition strength</span><span class="val" id="vc"></span></div><input type="range" id="c" min="1" max="9" step="1"></div>
-        <div class="ctrl"><div class="row"><span>decay  H relaxation</span><span class="val" id="vdecay"></span></div><input type="range" id="decay" min="2" max="11" step="1"></div>
-        <div class="ctrl"><div class="row"><span>rad  inhibition reach</span><span class="val" id="vrad"></span></div><input type="range" id="rad" min="2" max="13" step="1"></div>
-        <div class="ctrl"><div class="row"><span>bias  spiking threshold</span><span class="val" id="vbias"></span></div><input type="range" id="bias" min="-1.6" max="-0.4" step="0.05"></div>
-        <div class="ctrl"><div class="row"><span>speed  sweeps / frame</span><span class="val" id="vspeed"></span></div><input type="range" id="speed" min="1" max="6" step="1"></div>
-      </div>
-      <div class="btnrow" style="margin-top:12px;">
+      <div class="simbar">
         <button class="btn" id="play">Pause</button>
-        <button class="btn" id="reset">Reset lattice</button>
+        <button class="btn" id="reset">Restart</button>
+        <span class="phase" id="phase">Equilibrating</span>
+        <div class="prog" title="burn-in progress"><div class="progfill" id="progfill"></div></div>
+        <span class="ctrl" style="flex:1 1 150px;min-width:140px;"><span class="row"><span>speed (sweeps/s)</span><span class="val" id="vspeed"></span></span><input type="range" id="speed" min="2" max="20" step="1"></span>
       </div>
+      <div class="conds" id="conds"></div>
+      <canvas id="trace" width="672" height="90" style="margin-top:14px;"></canvas>
+      <div class="legend" id="legend"></div>
     </div>
-    <div class="callout">Presets are the top best-match parameter sets per training condition (from <span class="tag">EDFigure10_top10_params.json</span>). The grid here is 39×78 with rook (4-neighbour) coupling, exactly as in the paper; it starts from random and settles after a few hundred sweeps.</div>
+    <div class="callout">Each condition uses its top best-match parameters (from <span class="tag">EDFigure10_top10_params.json</span>) on the full 39×78 grid; the white box marks the imaged 13×26 field of view, shown zoomed below each grid. The run first <strong>equilibrates</strong> from a random start (burn-in), then <strong>records</strong> the fraction-active trace at the chosen speed.</div>
   </section>
 
   <section id="paper">
@@ -145,155 +148,152 @@
 <script>
 (function(){
   "use strict";
-  // ---------------- Ising model (faithful heat-bath port) ----------------
-  var L = 39, M = 78, N = L*M;
-  var s = new Int8Array(N), H = new Float64Array(N);
-  var beta=0.56, c=4, decay=4, rad=13, bias=-0.8, speed=2;
-  var offsRC = [], Ksum = 1, sweeps = 0;   // surround kernel: [di,dj] offsets
-  var traceBuf = [], TRACE_MAX = 234;
+  // ---------------- Grid + field of view ----------------
+  var L = 39, M = 78, N = L*M;               // full model grid
+  var FR = 13, FC = 26;                       // imaged field of view (voxels)
+  var fr0 = Math.floor((L-FR)/2), fc0 = Math.floor((M-FC)/2);  // FOV = centred crop
+  var AON = [255,209,102], AOFF = [14,42,49]; // active = amber, inactive = dark teal
+  var TRACE_MAX = 240;
+  var BURN_TARGET = 400;                       // equilibration sweeps before recording
 
   function idx(i,j){ i=(i%L+L)%L; j=(j%M+M)%M; return i*M+j; }
 
-  // Diamond kernel of radius r, excluding the centre and the 4 nearest
-  // neighbours (near units excite, the surround inhibits); matches build_diamond_kernel.
+  // Diamond kernel of radius r, excluding the centre and 4 nearest neighbours
+  // (near units excite, the surround inhibits); matches build_diamond_kernel.
   function buildKernel(r){
-    offsRC = [];
+    var offs=[];
     for(var di=-r; di<=r; di++) for(var dj=-r; dj<=r; dj++){
-      if(Math.abs(di)+Math.abs(dj) > r) continue;      // diamond
-      if(di===0 && dj===0) continue;                   // exclude centre
-      if(Math.abs(di)+Math.abs(dj) === 1) continue;    // exclude 4 nearest neighbours
-      offsRC.push([di,dj]);
+      if(Math.abs(di)+Math.abs(dj) > r) continue;
+      if(di===0 && dj===0) continue;
+      if(Math.abs(di)+Math.abs(dj) === 1) continue;
+      offs.push([di,dj]);
     }
-    Ksum = offsRC.length || 1;
+    return offs;
   }
 
-  function resetLattice(){
-    for(var k=0;k<N;k++){ s[k] = (Math.random()<0.5)?1:-1; H[k]=0; }
-    sweeps = 0; traceBuf = [];
+  // ---------------- Per-condition simulations (top-1 best-match presets) ----------------
+  var presets = [
+    {name:'Naive',    color:'#5e7782', beta:0.65, c:5, decay:4,  rad:9,  bias:-1.0},
+    {name:'Beginner', color:'#1b88a7', beta:0.63, c:9, decay:7,  rad:4,  bias:-1.0},
+    {name:'Expert',   color:'#e95e30', beta:0.56, c:4, decay:4,  rad:13, bias:-0.8},
+    {name:'NoSpout',  color:'#c73188', beta:0.60, c:9, decay:11, rad:4,  bias:-0.6}
+  ];
+
+  function makeSim(p){
+    var sm = {p:p, s:new Int8Array(N), H:new Float64Array(N),
+              offs:buildKernel(p.rad), burned:0, trace:[], frac:0};
+    sm.Ksum = sm.offs.length || 1;
+    return sm;
+  }
+  var sims = presets.map(makeSim);
+
+  function resetSim(sm){
+    for(var k=0;k<N;k++){ sm.s[k] = (Math.random()<0.5)?1:-1; sm.H[k]=0; }
+    sm.burned=0; sm.trace=[]; sm.frac=0;
   }
 
-  function sweep(){
-    var dt = 1.0/N;
+  function sweep(sm){
+    var dt=1.0/N, p=sm.p, s=sm.s, H=sm.H, offs=sm.offs, Ksum=sm.Ksum;
     for(var n=0;n<N;n++){
-      var i = (Math.random()*L)|0, j = (Math.random()*M)|0;
+      var i=(Math.random()*L)|0, j=(Math.random()*M)|0;
       var h = s[idx(i+1,j)] + s[idx(i-1,j)] + s[idx(i,j+1)] + s[idx(i,j-1)];
-      var p = idx(i,j);
-      var local = h + H[p] + bias;
-      var pplus = 1.0/(1.0 + Math.exp(-2.0*beta*local));
-      s[p] = (Math.random() < pplus) ? 1 : -1;
-      // adaptive inhibition: surround sum over the diamond kernel (periodic wrap)
-      var inhib = 0;
-      for(var oi=0; oi<offsRC.length; oi++){
-        inhib += s[idx(i+offsRC[oi][0], j+offsRC[oi][1])];
-      }
+      var q = idx(i,j);
+      var local = h + H[q] + p.bias;
+      s[q] = (Math.random() < 1.0/(1.0+Math.exp(-2.0*p.beta*local))) ? 1 : -1;
+      var inhib=0;
+      for(var o=0;o<offs.length;o++){ inhib += s[idx(i+offs[o][0], j+offs[o][1])]; }
       inhib /= Ksum;
-      H[p] += -(c*inhib*dt) - (decay*H[p]*dt);
+      H[q] += -(p.c*inhib*dt) - (p.decay*H[q]*dt);
     }
-    sweeps++;
+    sm.burned++;
+  }
+  function fracOf(sm){ var c=0,s=sm.s; for(var k=0;k<N;k++) if(s[k]===1) c++; return c/N; }
+
+  // ---------------- Build the per-condition columns ----------------
+  var condsEl = document.getElementById('conds');
+  sims.forEach(function(sm){
+    var col = document.createElement('div'); col.className='cond';
+    var nm  = document.createElement('div'); nm.className='nm'; nm.textContent=sm.p.name; nm.style.color=sm.p.color;
+    var pr  = document.createElement('div'); pr.className='pr';
+    pr.textContent = 'β'+sm.p.beta+' c'+sm.p.c+' d'+sm.p.decay+' r'+sm.p.rad+' b'+sm.p.bias;
+    var full = document.createElement('canvas'); full.width=M; full.height=L;
+    full.title = 'full 39×78 model grid; white box = imaged FOV';
+    var zlab = document.createElement('div'); zlab.className='pr'; zlab.textContent='imaged FOV 13×26';
+    var zoom = document.createElement('canvas'); zoom.width=FC; zoom.height=FR;
+    var fa   = document.createElement('div'); fa.className='fa'; fa.textContent='-';
+    col.appendChild(nm); col.appendChild(pr); col.appendChild(full);
+    col.appendChild(zlab); col.appendChild(zoom); col.appendChild(fa);
+    condsEl.appendChild(col);
+    sm.fctx = full.getContext('2d'); sm.fimg = sm.fctx.createImageData(M,L);
+    sm.zctx = zoom.getContext('2d'); sm.zimg = sm.zctx.createImageData(FC,FR);
+    sm.faEl = fa;
+  });
+
+  function drawSim(sm){
+    var d=sm.fimg.data, s=sm.s, k, o, c;
+    for(k=0;k<N;k++){ c=(s[k]===1)?AON:AOFF; o=k*4; d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=255; }
+    sm.fctx.putImageData(sm.fimg,0,0);
+    sm.fctx.strokeStyle='rgba(255,255,255,0.85)'; sm.fctx.lineWidth=1;
+    sm.fctx.strokeRect(fc0+0.5, fr0+0.5, FC-1, FR-1);
+    var z=sm.zimg.data, r, cc;
+    for(r=0;r<FR;r++) for(cc=0;cc<FC;cc++){
+      c=(s[idx(fr0+r,fc0+cc)]===1)?AON:AOFF; o=(r*FC+cc)*4;
+      z[o]=c[0]; z[o+1]=c[1]; z[o+2]=c[2]; z[o+3]=255;
+    }
+    sm.zctx.putImageData(sm.zimg,0,0);
   }
 
-  function fractionActive(){
-    var cnt=0; for(var k=0;k<N;k++) if(s[k]===1) cnt++;
-    return cnt/N;
-  }
-
-  // ---------------- Rendering ----------------
-  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
-  cv.width = M; cv.height = L;                    // 1px/cell, CSS scales up
-  var img = ctx.createImageData(M, L);
-  // active = warm amber, inactive = dark teal
-  var AON=[255,209,102], AOFF=[14,42,49];
-  function draw(){
-    var d = img.data;
-    for(var k=0;k<N;k++){
-      var col = (s[k]===1)?AON:AOFF, o=k*4;
-      d[o]=col[0]; d[o+1]=col[1]; d[o+2]=col[2]; d[o+3]=255;
-    }
-    ctx.putImageData(img,0,0);
-  }
+  // ---------------- Combined fraction-active trace ----------------
   var tc = document.getElementById('trace'), tctx = tc.getContext('2d');
   function drawTrace(){
     var W=tc.width, Hh=tc.height;
     tctx.clearRect(0,0,W,Hh);
-    // baseline grid
     tctx.strokeStyle='#d0e4ea'; tctx.lineWidth=1;
     tctx.beginPath(); tctx.moveTo(0,Hh-1); tctx.lineTo(W,Hh-1); tctx.stroke();
-    if(traceBuf.length<2) return;
-    var maxv=0.12; // 12% ceiling for scaling
-    for(var i=0;i<traceBuf.length;i++) if(traceBuf[i]>maxv) maxv=traceBuf[i];
-    tctx.strokeStyle='#e95e30'; tctx.lineWidth=1.5; tctx.beginPath();
-    for(var n=0;n<traceBuf.length;n++){
-      var x = n/(TRACE_MAX-1)*W;
-      var y = Hh - (traceBuf[n]/maxv)*(Hh-6) - 3;
-      if(n===0) tctx.moveTo(x,y); else tctx.lineTo(x,y);
-    }
-    tctx.stroke();
+    var maxv=0.10;
+    sims.forEach(function(sm){ for(var i=0;i<sm.trace.length;i++) if(sm.trace[i]>maxv) maxv=sm.trace[i]; });
+    sims.forEach(function(sm){
+      if(sm.trace.length<2) return;
+      tctx.strokeStyle=sm.p.color; tctx.lineWidth=1.4; tctx.beginPath();
+      for(var n=0;n<sm.trace.length;n++){
+        var x=n/(TRACE_MAX-1)*W, y=Hh-(sm.trace[n]/maxv)*(Hh-10)-3;
+        if(n===0) tctx.moveTo(x,y); else tctx.lineTo(x,y);
+      }
+      tctx.stroke();
+    });
     tctx.fillStyle='#5e7782'; tctx.font="10px 'JetBrains Mono',monospace";
-    tctx.fillText((maxv*100).toFixed(0)+'%', 3, 11);
+    tctx.fillText((maxv*100).toFixed(0)+'% active', 3, 11);
     tctx.fillText('fraction active over time', 3, Hh-4);
   }
 
-  // ---------------- Presets (top-1 best-match per condition) ----------------
-  var presets = {
-    Naive:    {beta:0.65, c:5, decay:4,  rad:9,  bias:-1.0},
-    Beginner: {beta:0.63, c:9, decay:7,  rad:4,  bias:-1.0},
-    Expert:   {beta:0.56, c:4, decay:4,  rad:13, bias:-0.8},
-    NoSpout:  {beta:0.60, c:9, decay:11, rad:4,  bias:-0.6}
-  };
-  var curPreset = 'Expert';
+  // ---------------- Legend ----------------
+  var legend=document.getElementById('legend');
+  sims.forEach(function(sm){
+    var s=document.createElement('span');
+    s.innerHTML='<i style="background:'+sm.p.color+'"></i>'+sm.p.name;
+    legend.appendChild(s);
+  });
 
   // ---------------- Controls ----------------
-  var ids = ['beta','c','decay','rad','bias','speed'];
-  function syncInputs(){
-    document.getElementById('beta').value=beta;  document.getElementById('vbeta').textContent=beta.toFixed(2);
-    document.getElementById('c').value=c;         document.getElementById('vc').textContent=c;
-    document.getElementById('decay').value=decay; document.getElementById('vdecay').textContent=decay;
-    document.getElementById('rad').value=rad;      document.getElementById('vrad').textContent=rad;
-    document.getElementById('bias').value=bias;    document.getElementById('vbias').textContent=bias.toFixed(2);
-    document.getElementById('speed').value=speed;  document.getElementById('vspeed').textContent=speed;
-  }
-  function onInput(){
-    beta=+document.getElementById('beta').value;
-    c=+document.getElementById('c').value;
-    decay=+document.getElementById('decay').value;
-    var newRad=+document.getElementById('rad').value;
-    bias=+document.getElementById('bias').value;
-    speed=+document.getElementById('speed').value;
-    if(newRad!==rad){ rad=newRad; buildKernel(rad); }
-    curPreset=''; document.getElementById('presetName').textContent='';
-    setActivePresetBtn();
-    syncInputs();
-  }
-  ids.forEach(function(id){ document.getElementById(id).addEventListener('input', onInput); });
-
-  function applyPreset(name){
-    var p=presets[name]; if(!p) return;
-    beta=p.beta; c=p.c; decay=p.decay; rad=p.rad; bias=p.bias;
-    buildKernel(rad); syncInputs(); resetLattice();
-    curPreset=name; document.getElementById('presetName').textContent=name+' preset';
-    setActivePresetBtn();
-  }
-  var presetBox = document.getElementById('presets');
-  Object.keys(presets).forEach(function(name){
-    var b=document.createElement('button'); b.className='btn'; b.textContent=name;
-    b.addEventListener('click', function(){ applyPreset(name); });
-    presetBox.appendChild(b);
-  });
-  function setActivePresetBtn(){
-    Array.prototype.forEach.call(presetBox.children, function(b){
-      b.classList.toggle('active', b.textContent===curPreset);
-    });
-  }
-
-  var playing=true;
+  var playing=true, phase='burnin', speed=6, lastStep=0;
+  var phaseEl=document.getElementById('phase'), progfill=document.getElementById('progfill');
+  var speedEl=document.getElementById('speed'), vspeedEl=document.getElementById('vspeed');
+  speedEl.value=speed; vspeedEl.textContent=speed;
+  speedEl.addEventListener('input', function(){ speed=+this.value; vspeedEl.textContent=speed; });
   document.getElementById('play').addEventListener('click', function(){
     playing=!playing; this.textContent=playing?'Pause':'Play';
   });
-  document.getElementById('reset').addEventListener('click', resetLattice);
+  document.getElementById('reset').addEventListener('click', restart);
+
+  function restart(){
+    sims.forEach(resetSim);
+    phase='burnin'; phaseEl.textContent='Equilibrating'; progfill.style.width='0%';
+    sims.forEach(drawSim); drawTrace();
+  }
 
   // ---------------- Nav ----------------
   var nav=[['overview','Idea'],['spins','Lattice'],['rule','Update rule'],
-           ['inhibition','Inhibition'],['sim','Run it'],['paper','Model → data']];
+           ['inhibition','Inhibition'],['sim','Run it'],['paper','Model / data']];
   var navEl=document.getElementById('nav');
   nav.forEach(function(n){
     var b=document.createElement('button'); b.textContent=n[1];
@@ -301,23 +301,34 @@
     navEl.appendChild(b);
   });
 
-  // ---------------- Loop ----------------
-  var fracEl=document.getElementById('frac'), swEl=document.getElementById('sweeps');
-  function loop(){
+  // ---------------- Animation loop ----------------
+  function loop(ts){
     if(playing){
-      for(var k=0;k<speed;k++) sweep();
-      var f=fractionActive();
-      traceBuf.push(f); if(traceBuf.length>TRACE_MAX) traceBuf.shift();
-      draw(); drawTrace();
-      fracEl.textContent=(f*100).toFixed(1)+'%';
-      swEl.textContent=sweeps;
+      if(phase==='burnin'){
+        var BATCH=6, b, minBurn=Infinity;
+        for(b=0;b<BATCH;b++){ sims.forEach(function(sm){ if(sm.burned<BURN_TARGET) sweep(sm); }); }
+        sims.forEach(function(sm){ if(sm.burned<minBurn) minBurn=sm.burned; });
+        progfill.style.width = Math.min(100, 100*minBurn/BURN_TARGET) + '%';
+        sims.forEach(drawSim);
+        if(minBurn>=BURN_TARGET){ phase='record'; phaseEl.textContent='Recording'; sims.forEach(function(sm){sm.trace=[];}); lastStep=ts; }
+      } else {
+        var interval=1000/speed;
+        if(ts-lastStep>=interval){
+          lastStep=ts;
+          sims.forEach(function(sm){
+            sweep(sm); sm.frac=fracOf(sm);
+            sm.trace.push(sm.frac); if(sm.trace.length>TRACE_MAX) sm.trace.shift();
+            sm.faEl.textContent=(sm.frac*100).toFixed(1)+'%';
+          });
+          sims.forEach(drawSim); drawTrace();
+        }
+      }
     }
     requestAnimationFrame(loop);
   }
 
-  buildKernel(rad); syncInputs(); resetLattice(); setActivePresetBtn();
-  document.getElementById('presetName').textContent=curPreset+' preset';
-  loop();
+  restart();
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
